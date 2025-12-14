@@ -2,12 +2,8 @@ const express = require('express');
 const employeeRoutes = express.Router();
 const empCtrl = require('../controllers/employeeController');
 const auth = require('../middlewares/auth');
-const { permit } = require('../middlewares/roles');
-
-// All routes protected
+const { permit } = require('../middlewares/roles')
 employeeRoutes.use(auth);
-
-// Admin only
 employeeRoutes.post('/', permit('ADMIN'), empCtrl.createEmployee);
 employeeRoutes.delete('/:id', permit('ADMIN'), empCtrl.deleteEmployee);
 employeeRoutes.get('/', empCtrl.getEmployees);

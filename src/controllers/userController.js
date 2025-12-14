@@ -1,8 +1,18 @@
 const User = require('../models/User');
 
 exports.getAll = async (req, res) => {
-  const users = await User.find().select('-password');
-  res.json(users);
+  try {
+    const filter = {};
+    if (req.query.role) {
+      filter.role = req.query.role;
+    }
+    filter.isActive = true;
+    const users = await User.find(filter)
+      .select('_id name email role isActive');
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
 exports.getById = async (req, res) => {

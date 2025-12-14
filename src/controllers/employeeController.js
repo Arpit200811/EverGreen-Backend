@@ -1,6 +1,4 @@
 const Employee = require('../models/Employee');
-
-// Create employee (ADMIN only)
 exports.createEmployee = async (req, res) => {
   try {
     const { name, department, salary, email, phone } = req.body;
@@ -16,8 +14,6 @@ exports.createEmployee = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
-
-// List all employees
 exports.getEmployees = async (req, res) => {
   try {
     const employees = await Employee.find();
@@ -26,8 +22,6 @@ exports.getEmployees = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
-// Get employee by id
 exports.getEmployeeById = async (req, res) => {
   try {
     const emp = await Employee.findById(req.params.id);
@@ -37,8 +31,6 @@ exports.getEmployeeById = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
-// Update employee
 exports.updateEmployee = async (req, res) => {
   try {
     const emp = await Employee.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -48,8 +40,6 @@ exports.updateEmployee = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
-// Delete employee (ADMIN only)
 exports.deleteEmployee = async (req, res) => {
   try {
     const emp = await Employee.findByIdAndDelete(req.params.id);
@@ -59,8 +49,6 @@ exports.deleteEmployee = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
-// enable/disable
 exports.toggleActive = async (req, res) => {
   try {
     if (req.user.role !== 'ADMIN') return res.status(403).json({ message: 'Forbidden' });
@@ -69,7 +57,6 @@ exports.toggleActive = async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
-// update skills and baseSalary
 exports.updateByAdmin = async (req, res) => {
   try {
     if (req.user.role !== 'ADMIN') return res.status(403).json({ message: 'Forbidden' });

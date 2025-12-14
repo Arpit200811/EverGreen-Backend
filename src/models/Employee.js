@@ -8,7 +8,12 @@ const EmployeeSchema = new Schema({
   department: { type: String, required: true },
   salary: { type: Number, default: 0 },
   role: { type: String, default: 'EMPLOYEE' },
-  isActive: { type: Boolean, default: true }
+  isActive: { type: Boolean, default: true },
+  user: {
+  type: Schema.Types.ObjectId,
+  ref: 'User',
+  required: true
+}
 }, { timestamps: true });
 
 module.exports = mongoose.model('Employee', EmployeeSchema);
