@@ -21,7 +21,7 @@ const io = initIo(server);
 
 // basic middlewares
 app.use(cors({
-  origin: "https://evergreen-frontend.onrender.com", // frontend URL
+  origin: "https://evergreen-frontend.onrender.com", //https://evergreen-frontend.onrender.com
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
