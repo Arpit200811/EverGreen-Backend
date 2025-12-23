@@ -37,9 +37,7 @@ app.use('/leaves', leaveRoutes);
 app.use('/salary', salaryRoutes);
 app.use('/employees', employeeRoutes);
 app.use('/admin', adminRoutes);
-
-
-// simple root
+app.use("/uploads", express.static("uploads"));
 app.get('/', (req, res) => res.send('Evergreen EMS API'));
 
 // Socket.IO: employees emit 'locationUpdate' while on job

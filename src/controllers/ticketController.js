@@ -281,8 +281,6 @@ exports.addLog = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
-// Update estimated cost (Admin)
 exports.updateEstimatedCost = async (req, res) => {
   try {
     if (req.user.role !== "ADMIN")
@@ -324,3 +322,104 @@ exports.getMyTickets = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+
+exports.update = async (req, res) => {
+  try {
+    /* 🔐 ADMIN ONLY */
+    if (req.user.role !== "ADMIN") {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const { id } = req.params;
+    const updates = req.body;
+
+    const ticket = await Ticket.findById(id);
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+    const allowedFields = [
+      "deviceType",
+      "issueDescription",
+      "status",
+      "estimatedCost",
+      "assignedEngineer",
+      "deviceModel",
+    ];
+
+    allowedFields.forEach((field) => {
+      if (updates[field] !== undefined) {
+        ticket[field] = updates[field];
+      }
+    });
+
+    await ticket.save();
+
+    /* 🧾 LOG */
+    await TicketLog.create({
+      ticket: id,
+      author: req.user._id,
+      role: req.user.role,
+      message: "Ticket updated by admin",
+    });
+
+    /* 🔔 SOCKET NOTIFY */
+    if (io) {
+      io.to(process.env.LOCATION_EMIT_ROOM || "admins").emit("ticketUpdated", {
+        ticketId: ticket._id,
+      });
+
+      if (ticket.assignedEngineer) {
+        io.to(ticket.assignedEngineer.toString()).emit("ticketUpdated", {
+          ticketId: ticket._id,
+        });
+      }
+
+      io.to(ticket.customer.toString()).emit("ticketUpdated", {
+        ticketId: ticket._id,
+      });
+    }
+
+    res.json(ticket);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.remove = async (req, res) => {
+  try {
+    /* 🔐 ADMIN ONLY */
+    if (req.user.role !== "ADMIN") {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const { id } = req.params;
+
+    const ticket = await Ticket.findById(id);
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    /* 🧾 LOG BEFORE DELETE */
+    await TicketLog.create({
+      ticket: id,
+      author: req.user._id,
+      role: req.user.role,
+      message: "Ticket deleted by admin",
+    });
+
+    await Ticket.findByIdAndDelete(id);
+
+    /* 🔔 SOCKET NOTIFY */
+    if (io) {
+      io.to(process.env.LOCATION_EMIT_ROOM || "admins").emit("ticketDeleted", {
+        ticketId: id,
+      });
+    }
+
+    res.json({ message: "Ticket deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+

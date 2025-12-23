@@ -3,7 +3,6 @@ const ticketRoutes = express.Router();
 const ctrl = require('../controllers/ticketController');
 const auth = require('../middlewares/auth');
 const { permit } = require('../middlewares/roles');
-
 ticketRoutes.post('/', auth, ctrl.create);
 ticketRoutes.get('/', auth, ctrl.list);
 ticketRoutes.get('/my',auth,permit('EMPLOYEE'),ctrl.getMyTickets);
@@ -11,11 +10,11 @@ ticketRoutes.get('/:id', auth, ctrl.get);
 ticketRoutes.put('/:id/assign', auth, permit('ADMIN'), ctrl.assign);
 ticketRoutes.put('/:id/start', auth, permit('EMPLOYEE'), ctrl.start);
 ticketRoutes.put('/:id/complete', auth, permit('EMPLOYEE'), ctrl.complete);
-
-
 ticketRoutes.put('/:id/cancel', auth, ctrl.cancel);
 ticketRoutes.put('/:id/reassign', auth, permit('ADMIN'), ctrl.reassign);
 ticketRoutes.post('/:id/logs', auth, ctrl.addLog);
 ticketRoutes.put('/:id/estimatedCost', auth, permit('ADMIN'), ctrl.updateEstimatedCost);
+ticketRoutes.put("/:id", auth,permit('ADMIN'), ctrl.update);
+ticketRoutes.delete("/:id", auth,permit('ADMIN'), ctrl.remove);
 
 module.exports = ticketRoutes;
