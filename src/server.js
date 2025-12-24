@@ -21,7 +21,7 @@ const io = initIo(server);
 
 // basic middlewares
 app.use(cors({
-  origin: "https://evergreen-frontend.onrender.com", //https://evergreen-frontend.onrender.com
+  origin: "https://evergreen-frontend.onrender.com", //https://evergreen-frontend.onrender.com   http://localhost:5173
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -39,8 +39,6 @@ app.use('/employees', employeeRoutes);
 app.use('/admin', adminRoutes);
 app.use("/uploads", express.static("uploads"));
 app.get('/', (req, res) => res.send('Evergreen EMS API'));
-
-// Socket.IO: employees emit 'locationUpdate' while on job
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
 

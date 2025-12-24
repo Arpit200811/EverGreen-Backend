@@ -27,11 +27,9 @@ exports.list = async (req, res) => {
       }).populate("customer assignedEngineer");
       return res.json(tickets);
     }
-
-    // CUSTOMER
-    const tickets = await Ticket.find({ customer: user._id }).populate(
-      "assignedEngineer"
-    );
+    const tickets = await Ticket.find({ customer: user._id })
+      .populate("customer", "name mobile location")
+      .populate("assignedEngineer", "name mobile");
 
     res.json(tickets);
   } catch (err) {
@@ -53,17 +51,16 @@ exports.get = async (req, res) => {
 exports.assign = async (req, res) => {
   try {
     if (req.user.role !== "ADMIN") {
-
       return res.status(403).json({ message: "Forbidden" });
     }
     const { engineerId } = req.body;
-    console.log("###########",engineerId)
+    console.log("###########", engineerId);
     const engineer = await User.findOne({
       _id: engineerId,
       role: "EMPLOYEE",
       isActive: true,
     });
-    console.log("###########",engineer)
+    console.log("###########", engineer);
 
     if (!engineer) {
       return res.status(400).json({ message: "Invalid engineer" });
@@ -133,22 +130,22 @@ exports.complete = async (req, res) => {
     const ticket = await Ticket.findById(req.params.id);
 
     if (!ticket) {
-      return res.status(404).json({ message: 'Ticket not found' });
+      return res.status(404).json({ message: "Ticket not found" });
     }
 
     /* 🔐 only assigned employee */
     if (ticket.assignedEngineer.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not your ticket' });
+      return res.status(403).json({ message: "Not your ticket" });
     }
 
     /* 🔐 must be IN_PROGRESS */
-    if (ticket.status !== 'IN_PROGRESS') {
+    if (ticket.status !== "IN_PROGRESS") {
       return res.status(400).json({
-        message: 'Ticket must be IN_PROGRESS to complete'
+        message: "Ticket must be IN_PROGRESS to complete",
       });
     }
 
-    ticket.status = 'COMPLETED';
+    ticket.status = "COMPLETED";
     ticket.endTime = new Date();
 
     if (req.body.receiptImage) {
@@ -162,7 +159,6 @@ exports.complete = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 exports.cancel = async (req, res) => {
   try {
@@ -312,9 +308,9 @@ exports.getMyTickets = async (req, res) => {
   try {
     const tickets = await Ticket.find({
       assignedEngineer: req.user._id,
-      status: { $in: ['ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] }
+      status: { $in: ["ASSIGNED", "IN_PROGRESS", "COMPLETED"] },
     })
-      .populate('customer', 'name email')
+      .populate("customer", "name email")
       .sort({ createdAt: -1 });
 
     res.json(tickets);
@@ -322,7 +318,6 @@ exports.getMyTickets = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 exports.update = async (req, res) => {
   try {
@@ -422,4 +417,3 @@ exports.remove = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
