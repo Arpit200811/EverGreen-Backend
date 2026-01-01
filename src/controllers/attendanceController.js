@@ -63,7 +63,7 @@ exports.allAttendance = async (req, res) => {
   }
 
   const records = await Attendance.find()
-    .populate("employee", "name email")
+    .populate("employee", "name email profileImage")
     .sort({ date: -1 });
 
   res.json(records);
