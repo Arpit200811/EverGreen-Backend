@@ -8,5 +8,6 @@ locationRoutes.post('/update', auth, ctrl.savePoint);
 locationRoutes.get('/employee/:employeeId/latest', auth, ctrl.latest);
 
 locationRoutes.get('/all/latest', auth, permit('ADMIN'), ctrl.allEmployeesLatest);
+locationRoutes.get('/history/:employeeId', auth, ctrl.getHistory);
 
 module.exports = locationRoutes;

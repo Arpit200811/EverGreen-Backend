@@ -90,13 +90,35 @@ exports.allEmployeesLatest = async (req, res) => {
     ]);
     const filled = await Promise.all(
       data.map(async (loc) => {
-        const emp = await User.findById(loc._id).select("name email role");
+        const emp = await User.findById(loc._id).select("name email role mobile");
         return { ...loc, employee: emp };
       })
     );
 
     res.json(filled);
 
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getHistory = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { date } = req.query; // Format: YYYY-MM-DD
+
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+
+    const logs = await Location.find({
+      employee: employeeId,
+      createdAt: { $gte: start, $lte: end }
+    }).sort({ createdAt: 1 }); // Purane se naya (path banane ke liye)
+
+    res.json(logs);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
