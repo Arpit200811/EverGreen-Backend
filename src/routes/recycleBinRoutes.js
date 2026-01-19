@@ -1,0 +1,11 @@
+const express = require("express");
+const Binrouter = express.Router();
+const recycle = require("../controllers/recycleBinController");
+const auth = require("../middlewares/auth");
+Binrouter.get("/employees", auth, recycle.getDeletedEmployees);
+Binrouter.patch("/employees/:id/restore", auth, recycle.restoreEmployee);
+Binrouter.delete("/employees/:id/permanent", auth, recycle.permanentDeleteEmployee);
+Binrouter.get("/tickets", auth, recycle.getDeletedTickets);
+Binrouter.patch("/tickets/:id/restore", auth, recycle.restoreTicket);
+Binrouter.delete("/tickets/:id/permanent", auth, recycle.permanentDeleteTicket);
+module.exports = Binrouter;

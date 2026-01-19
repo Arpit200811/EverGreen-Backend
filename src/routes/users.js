@@ -6,6 +6,7 @@ const auth = require('../middlewares/auth');
 const { permit } = require('../middlewares/roles');
 
 userRoutes.get('/all', auth, permit('ADMIN'), userCtrl.getAll);
+userRoutes.put("/update-location", auth, userCtrl.updateLocation);
 userRoutes.get('/:id', auth, userCtrl.getById);
 userRoutes.put('/:id', auth, permit('ADMIN','EMPLOYEE'), userCtrl.update);
 userRoutes.delete('/:id',auth,permit('ADMIN'),userCtrl.deleteEmployee);

@@ -34,22 +34,44 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ message: 'Missing fields' });
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Missing fields" });
+    }
 
     const user = await User.findOne({ email });
-    if (!user)
-      return res.status(401).json({ message: 'Invalid credentials' });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+    if (user.isDeleted) {
+      return res.status(403).json({
+        message: "Your account has been deleted. Contact admin."
+      });
+    }
+
+    /* 🚫 INACTIVE USER CHECK */
+    if (!user.isActive) {
+      return res.status(403).json({
+        message: "Your account is inactive. Contact admin."
+      });
+    }
 
     const valid = await bcrypt.compare(password, user.password);
-    if (!valid)
-      return res.status(401).json({ message: 'Invalid credentials' });
+    if (!valid) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
 
     const token = jwt.sign(
-      { id: user._id, role: user.role, email: user.email },
+      {
+        id: user._id,
+        role: user.role,
+        email: user.email,
+      },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
+      { expiresIn: process.env.JWT_EXPIRES_IN || "1d" }
     );
+
     res.json({
       token,
       user: {
@@ -57,14 +79,18 @@ exports.login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        profileImage:user.profileImage
-      }
+        profileImage: user.profileImage,
+        trackLocation: user.role === "EMPLOYEE",
+      },
     });
+
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message
+    });
   }
 };
-
 /* ================= ME ================= */
 exports.me = async (req, res) => {
   res.json(req.user);
@@ -83,15 +109,13 @@ exports.forgotPassword = async (req, res) => {
     await user.save();
     console.log(
       'RESET LINK:',
-      `http://localhost:3000/reset-password/${token}`
+      `http://localhost:5000/reset-password/${token}`
     );
     res.json({ message: 'Reset link sent to email' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
-
-/* ================= RESET PASSWORD ================= */
 exports.resetPassword = async (req, res) => {
   try {
     const { password } = req.body;

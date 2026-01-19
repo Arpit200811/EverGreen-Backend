@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
-
 const LeaveSchema = new Schema({
   employee: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   fromDate: Date,

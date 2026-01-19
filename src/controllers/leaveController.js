@@ -20,3 +20,21 @@ exports.updateStatus = async (req, res) => {
   const leave = await Leave.findByIdAndUpdate(id, { status: req.body.status }, { new: true });
   res.json(leave);
 };
+
+exports.checkTodayLeave = async (req, res) => {
+  try {
+    const empId = req.user._id;
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const activeLeave = await Leave.findOne({
+      employee: empId,
+      status: "APPROVED",
+      startDate: { $lte: todayStr },
+      endDate: { $gte: todayStr }
+    });
+
+    res.json({ onLeave: !!activeLeave });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

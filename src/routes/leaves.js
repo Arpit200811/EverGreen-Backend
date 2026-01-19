@@ -7,5 +7,6 @@ const { permit } = require('../middlewares/roles');
 leaveRoutes.post('/apply', auth, ctrl.apply);
 leaveRoutes.get('/', auth, ctrl.list);
 leaveRoutes.put('/:id/status', auth, permit('ADMIN'), ctrl.updateStatus);
+leaveRoutes.get('/check-today', auth, ctrl.checkTodayLeave);
 
 module.exports = leaveRoutes;

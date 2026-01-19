@@ -1,7 +1,8 @@
 const Ticket = require("../models/Ticket");
 const TicketLog = require("../models/TicketLog");
 const User = require("../models/User");
-const io = require("../utils/socket").getIo();
+const { getIo } = require("../utils/socket");
+
 exports.create = async (req, res) => {
   try {
     const body = req.body;
@@ -14,20 +15,33 @@ exports.create = async (req, res) => {
 };
 exports.list = async (req, res) => {
   try {
-    const { user } = req;
+    const user = req.user;
 
-    if (user.role === "ADMIN") {
-      const tickets = await Ticket.find().populate("customer assignedEngineer");
-      return res.json(tickets);
-    }
+    // 1. ADMIN & SUPER_ADMIN Fix
+    if (["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
+  const tickets = await Ticket.find({ 
+    isDeleted: { $ne: true } // Iska matlab: Jo true nahi hai (chahe false ho ya field hi na ho)
+  })
+  .populate("customer assignedEngineer");
 
+  return res.json(tickets);
+}
+
+    // 2. EMPLOYEE Filter
     if (user.role === "EMPLOYEE") {
       const tickets = await Ticket.find({
         assignedEngineer: user._id,
+        isDeleted: false, // Correctly working
       }).populate("customer assignedEngineer");
+
       return res.json(tickets);
     }
-    const tickets = await Ticket.find({ customer: user._id })
+
+    // 3. CUSTOMER Filter
+    const tickets = await Ticket.find({
+      customer: user._id,
+      isDeleted: false, // Correctly working
+    })
       .populate("customer", "name mobile location")
       .populate("assignedEngineer", "name mobile");
 
@@ -38,9 +52,10 @@ exports.list = async (req, res) => {
 };
 exports.get = async (req, res) => {
   try {
-    const t = await Ticket.findById(req.params.id).populate(
-      "customer assignedEngineer"
-    );
+    const t = await Ticket.findOne({
+      _id: req.params.id,
+      isDeleted: false,
+    }).populate("customer assignedEngineer");
     if (!t) return res.status(404).json({ message: "Not found" });
 
     res.json(t);
@@ -77,13 +92,10 @@ exports.assign = async (req, res) => {
     }
 
     /* ---------- ASSIGN TICKET ---------- */
-    const ticket = await Ticket.findByIdAndUpdate(
-      req.params.id,
-      {
-        assignedEngineer: engineer._id,
-        status: "ASSIGNED",
-      },
-      { new: true }
+    const ticket = await Ticket.findOneAndUpdate(
+      { _id: req.params.id, isDeleted: false },
+      { assignedEngineer: engineer._id, status: "ASSIGNED" },
+      { new: true },
     )
       .populate("customer", "name email")
       .populate("assignedEngineer", "name email");
@@ -110,7 +122,7 @@ exports.start = async (req, res) => {
         status: "IN_PROGRESS",
         startTime: new Date(),
       },
-      { new: true }
+      { new: true },
     );
 
     if (!ticket)
@@ -123,8 +135,6 @@ exports.start = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
-// ✅ Complete ticket
 exports.complete = async (req, res) => {
   try {
     const ticket = await Ticket.findById(req.params.id);
@@ -181,7 +191,7 @@ exports.cancel = async (req, res) => {
     if (io)
       io.to(process.env.LOCATION_EMIT_ROOM || "admins").emit(
         "ticketCancelled",
-        { ticketId: ticket._id }
+        { ticketId: ticket._id },
       );
 
     res.json(ticket);
@@ -201,7 +211,7 @@ exports.reassign = async (req, res) => {
     const ticket = await Ticket.findByIdAndUpdate(
       id,
       { assignedEngineer: engineerId, status: "ASSIGNED" },
-      { new: true }
+      { new: true },
     ).populate("assignedEngineer customer");
 
     if (!ticket) return res.status(404).json({ message: "Ticket not found" });
@@ -287,7 +297,7 @@ exports.updateEstimatedCost = async (req, res) => {
     const ticket = await Ticket.findByIdAndUpdate(
       id,
       { estimatedCost },
-      { new: true }
+      { new: true },
     );
     if (!ticket) return res.status(404).json({ message: "Ticket not found" });
 
@@ -308,6 +318,7 @@ exports.getMyTickets = async (req, res) => {
   try {
     const tickets = await Ticket.find({
       assignedEngineer: req.user._id,
+      isDeleted: false,
       status: { $in: ["ASSIGNED", "IN_PROGRESS", "COMPLETED"] },
     })
       .populate("customer", "name email")
@@ -318,6 +329,7 @@ exports.getMyTickets = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 
 exports.update = async (req, res) => {
   try {
@@ -383,36 +395,36 @@ exports.update = async (req, res) => {
 
 exports.remove = async (req, res) => {
   try {
-    /* 🔐 ADMIN ONLY */
     if (req.user.role !== "ADMIN") {
       return res.status(403).json({ message: "Forbidden" });
     }
-
     const { id } = req.params;
-
-    const ticket = await Ticket.findById(id);
+    const ticket = await Ticket.findOne({
+      _id: id,
+    });
     if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });
     }
-
-    /* 🧾 LOG BEFORE DELETE */
+    /* ♻️ MOVE TO RECYCLE BIN */
+    ticket.isDeleted = true;
+    ticket.deletedAt = new Date();
+    ticket.deletedBy = req.user._id;
+    await ticket.save();
     await TicketLog.create({
       ticket: id,
       author: req.user._id,
       role: req.user.role,
-      message: "Ticket deleted by admin",
+      message: "Ticket moved to recycle bin by admin",
     });
-
-    await Ticket.findByIdAndDelete(id);
-
-    /* 🔔 SOCKET NOTIFY */
+    const io = getIo();
     if (io) {
       io.to(process.env.LOCATION_EMIT_ROOM || "admins").emit("ticketDeleted", {
         ticketId: id,
+        softDelete: true,
       });
     }
 
-    res.json({ message: "Ticket deleted successfully" });
+    res.json({ message: "Ticket moved to recycle bin" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
