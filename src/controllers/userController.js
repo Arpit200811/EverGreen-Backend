@@ -2,13 +2,13 @@ const User = require('../models/User');
 
 exports.getAll = async (req, res) => {
   try {
-    const filter = {isDeleted: false};
+    const filter = {};
     if (req.query.role) {
       filter.role = req.query.role;
     }
     filter.isActive = true;
     const users = await User.find(filter)
-      .select('_id name email role isActive mobile profileImage location lastActive')
+      .select('_id name email role isActive mobile profileImage location lastActive address dob aadharNo')
       .sort({ lastActive: -1 });
     res.json(users);
   } catch (err) {

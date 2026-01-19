@@ -25,18 +25,10 @@ const User = require('./models/User');
 
 const app = express();
 const server = http.createServer(app);
-
-// Socket Initialization
 const { initIo } = require('./utils/socket');
 const io = initIo(server);
-
-// Important: Set socketio to app for use in controllers
 app.set('socketio', io);
-
-// Database Connection
 connectDB();
-
-// Middlewares
 app.use(cors({
   origin: ["http://localhost:5173", "https://evergreen-frontend.onrender.com"],
   credentials: true
@@ -48,9 +40,9 @@ app.use("/uploads", express.static("uploads"));
 
 // Routes
 app.use('/auth', authRoutes);
-app.use('/users', userRoutes); // updateLocation yahan hai
+app.use('/users', userRoutes);
 app.use('/tickets', ticketRoutes);
-app.use('/location', locationRoutes); // savePoint yahan hai
+app.use('/location', locationRoutes);
 app.use('/attendance', attendanceRoutes);
 app.use('/leaves', leaveRoutes);
 app.use('/salary', salaryRoutes);
