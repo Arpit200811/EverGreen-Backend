@@ -1,10 +1,5 @@
 const Location = require('../models/Location');
 const User = require('../models/User');
-
-/**
- * Save employee live location
- * Called every 5–10 seconds from frontend
- */
 exports.savePoint = async (req, res) => {
   try {
     const { lat, lng, accuracy, timestampClient } = req.body;
@@ -12,11 +7,8 @@ exports.savePoint = async (req, res) => {
     if (!lat || !lng) {
       return res.status(400).json({ message: "lat & lng required" });
     }
-
-    // Prevent duplicate spam (same location again & again)
     const last = await Location.findOne({ employee: req.user._id })
       .sort({ createdAt: -1 });
-
     if (last) {
       const distance = Math.sqrt(
         Math.pow(last.lat - lat, 2) +
@@ -24,12 +16,9 @@ exports.savePoint = async (req, res) => {
       );
 
       if (distance < 0.00001) {
-        // Ignore same location to save DB space
         return res.json({ message: "Ignored duplicate location" });
       }
     }
-
-    // Save new location
     const doc = await Location.create({
       employee: req.user._id,
       lat,
@@ -37,8 +26,6 @@ exports.savePoint = async (req, res) => {
       accuracy,
       timestampClient: timestampClient || new Date()
     });
-
-    // Update employee "lastActive" (useful for admin dashboard)
     await User.findByIdAndUpdate(req.user._id, {
       lastActive: new Date()
     });
@@ -53,9 +40,6 @@ exports.savePoint = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-/**
- * Get last known location of employee
- */
 exports.latest = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -69,9 +53,6 @@ exports.latest = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-/**
- * Admin: Get live locations of all employees
- */
 exports.allEmployeesLatest = async (req, res) => {
   try {
     const data = await Location.aggregate([
@@ -105,19 +86,15 @@ exports.allEmployeesLatest = async (req, res) => {
 exports.getHistory = async (req, res) => {
   try {
     const { employeeId } = req.params;
-    const { date } = req.query; // Format: YYYY-MM-DD
-
+    const { date } = req.query; 
     const start = new Date(date);
     start.setHours(0, 0, 0, 0);
-
     const end = new Date(date);
     end.setHours(23, 59, 59, 999);
-
     const logs = await Location.find({
       employee: employeeId,
       createdAt: { $gte: start, $lte: end }
-    }).sort({ createdAt: 1 }); // Purane se naya (path banane ke liye)
-
+    }).sort({ createdAt: 1 });
     res.json(logs);
   } catch (err) {
     res.status(500).json({ message: err.message });

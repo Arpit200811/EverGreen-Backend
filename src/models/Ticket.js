@@ -38,8 +38,6 @@ const TicketSchema = new Schema(
     },
 
     estimatedCost: Number,
-
-    // ✅ Soft delete fields
     isDeleted: {
       type: Boolean,
       default: false,

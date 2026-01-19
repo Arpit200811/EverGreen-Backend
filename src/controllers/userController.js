@@ -2,13 +2,14 @@ const User = require('../models/User');
 
 exports.getAll = async (req, res) => {
   try {
-    const filter = {};
+    const filter = {isDeleted: false};
     if (req.query.role) {
       filter.role = req.query.role;
     }
     filter.isActive = true;
     const users = await User.find(filter)
-      .select('_id name email role isActive aadharNo  dob mobile address profileImage');
+      .select('_id name email role isActive mobile profileImage location lastActive')
+      .sort({ lastActive: -1 });
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -116,12 +117,23 @@ exports.updateLocation = async (req, res) => {
         $set: {
           "location.type": "Point",
           "location.coordinates": coordinates,
+          "lastActive": new Date()
         },
       },
       { new: true }
-    );
+    ).select("-password");
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
+    }
+    const io = req.app.get('socketio');
+    if (io) {
+      io.emit('employeeLocation', {
+        employeeId: updatedUser._id,
+        lat: coordinates[1],
+        lng: coordinates[0],
+        accuracy: req.body.accuracy || 0,
+        updatedAt: updatedUser.lastActive
+      });
     }
     res.json({ success: true, message: "Location updated successfully" });
   } catch (err) {
